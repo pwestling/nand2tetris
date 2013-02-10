@@ -38,5 +38,37 @@ CHIP CPU {
         pc[15];          // ROM address (of next instruction)
 
      PARTS:
-    // Put your code here.
+
+	ALU(x=outd, y=AorM, zx=instruction[11],  nx=instruction[10],  zy=instruction[9],  ny=instruction[8], f=instruction[7], no=instruction[6], out=outALUA, out=outALUD, out=outM,zr=zr,ng=ng);
+	
+
+	Mux16(a=instruction,b=outALUA, sel=instruction[15], out=outALUAorIn);
+	
+	Not(in=instruction[15],out=at);
+	Or(a=at,b=instruction[5],out=loada);
+	
+	ARegister(in=outALUAorIn, load=loada, out=outa, out[0..14]=addressM);
+
+	And(a=instruction[15],b=instruction[4],out=loadd);
+	DRegister(in=outALUD, load=loadd, out=outd);
+
+
+	Mux16(a=outa,b=inM,sel=instruction[12],out=AorM);
+
+	PC(in=outa,inc=true,reset=reset,load=loadPC, out[0..14]=pc);
+
+	Not(in=zr,out=notzero);
+	Not(in=ng,out=pos);
+
+	And(a=notzero, b=ng, out=lessthan0);
+	And(a=notzero, b=pos, out=greaterthan0);
+	And(a=instruction[2],b=lessthan0,out=loadj1);
+	And(a=instruction[1], b=zr, out=loadj2);
+	And(a=instruction[0], b=greaterthan0, out=loadj3);
+
+	Or(a=loadj1, b=loadj2, out=loadj12);
+	Or(a=loadj12, b=loadj3, out=load123);
+	And(a=load123, b=instruction[15], out=loadPC);
+	And(a=instruction[15], b=instruction[3], out=writeM);
+
 }
